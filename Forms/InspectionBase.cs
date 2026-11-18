@@ -72,11 +72,6 @@ namespace WindowsFormsApp1.Forms
             Grid.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
             Grid.ColumnHeadersHeight = 56;
             Grid.ColumnHeadersDefaultCellStyle.WrapMode = DataGridViewTriState.True;
-            Grid.DataError += (s, e) =>
-            {
-                e.ThrowException = false;
-                Msg.Show("مقدار واردشده نامعتبر است.");
-            };
             root.Controls.Add(Grid, 0, 2);
 
             root.Controls.Add(Ui.BottomBar(delete, "در صورت تایید لیست زیر، کلیک نمایید", confirm), 0, 3);

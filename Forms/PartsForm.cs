@@ -21,6 +21,7 @@ namespace WindowsFormsApp1.Forms
             InitializeComponent();
 
             dgvParts.AutoGenerateColumns = false;
+            dgvParts.DataError += QcApp.Ui.GridError;
             dgvParts.DataSource = _parts;
             dgvParts.DataBindingComplete += (s, e) =>
             {
@@ -68,7 +69,6 @@ namespace WindowsFormsApp1.Forms
         void btnManual_Click(object sender, EventArgs e)
         {
             pnlEntry.Visible = true;
-            txtPartName.Focus();
         }
 
         void btnAdd_Click(object sender, EventArgs e)
@@ -177,6 +177,15 @@ namespace WindowsFormsApp1.Forms
                     Msg.Show("قطعه تکراری در لیست وجود دارد.");
                     return;
                 }
+                catch (SqlException ex) when (ex.Number == 547)
+                {
+                    tx.Rollback();
+                    Msg.Show("این قطعه در یک گزارش بازرسی استفاده شده و قابل حذف نیست.");
+                    _deleted.Clear();
+                    _parts.Clear();
+                    LoadFromDb();
+                    return;
+                }
             }
 
             _deleted.Clear();
@@ -201,6 +210,10 @@ namespace WindowsFormsApp1.Forms
 
         }
 
+        private void btnAdd1_Click(object sender, EventArgs e)
+        {
+
+        }
 
         private void label6_Click(object sender, EventArgs e)
         {
@@ -263,6 +276,26 @@ namespace WindowsFormsApp1.Forms
         }
 
         private void lblCall_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void btnManual_Click_1(object sender, EventArgs e)
+        {
+
+        }
+
+        private void btnGroup_Click_1(object sender, EventArgs e)
+        {
+
+        }
+
+        private void btnConfirm_Click_1(object sender, EventArgs e)
+        {
+
+        }
+
+        private void btnDelete_Click_1(object sender, EventArgs e)
         {
 
         }

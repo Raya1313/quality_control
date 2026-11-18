@@ -115,11 +115,6 @@ namespace WindowsFormsApp1.Forms
             _grid.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
             _grid.ColumnHeadersHeight = 56;
             _grid.ColumnHeadersDefaultCellStyle.WrapMode = DataGridViewTriState.True;
-            _grid.DataError += (s, e) =>
-            {
-                e.ThrowException = false;
-                Msg.Show("مقدار واردشده نامعتبر است.");
-            };
 
             Txt("ردیف", "", 45, true);
             Txt("تاریخ", "ReportDateText", 85, true);

@@ -20,6 +20,7 @@ namespace WindowsFormsApp1.Forms
         readonly BindingList<NcrAction> _actions = new BindingList<NcrAction>();
         readonly BindingList<NcrCheck> _checks = new BindingList<NcrCheck>();
         readonly DataGridView _listGrid = Ui.Grid();
+
         DataGridView? _gridActions, _gridChecks;
         Ncr _current = new Ncr();
         bool _loading;

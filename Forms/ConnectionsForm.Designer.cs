@@ -1,4 +1,6 @@
-﻿namespace WindowsFormsApp1.Forms
+﻿using System;
+
+namespace WindowsFormsApp1.Forms
 {
     partial class ConnectionsForm
     {
@@ -157,7 +159,7 @@
             this.label5.Size = new System.Drawing.Size(52, 16);
             this.label5.TabIndex = 33;
             this.label5.Text = "کد اتصال";
-            this.label5.Click += new System.EventHandler(this.label5_Click);
+            this.label5.Click += new System.EventHandler(this.Label5_Click);
             // 
             // label3
             // 
@@ -238,7 +240,6 @@
             this.pnlEntry.Name = "pnlEntry";
             this.pnlEntry.Size = new System.Drawing.Size(834, 107);
             this.pnlEntry.TabIndex = 20;
-            this.pnlEntry.Visible = false;
             // 
             // label2
             // 
@@ -248,7 +249,7 @@
             this.label2.Size = new System.Drawing.Size(68, 16);
             this.label2.TabIndex = 30;
             this.label2.Text = "ضخامت ورق";
-            this.label2.Click += new System.EventHandler(this.label2_Click);
+            this.label2.Click += new System.EventHandler(this.Label2_Click);
             // 
             // numThickness
             // 
@@ -335,7 +336,7 @@
             // 
             // colThickness
             // 
-            this.colThickness.DataPropertyName = "Length";
+            this.colThickness.DataPropertyName = "Thickness";
             this.colThickness.HeaderText = "ضخامت";
             this.colThickness.MinimumWidth = 6;
             this.colThickness.Name = "colThickness";
@@ -399,7 +400,7 @@
             this.lblLinkConns.Size = new System.Drawing.Size(89, 16);
             this.lblLinkConns.TabIndex = 2;
             this.lblLinkConns.Text = "اتصالات این قطعه";
-            this.lblLinkConns.Click += new System.EventHandler(this.label6_Click);
+            this.lblLinkConns.Click += new System.EventHandler(this.Label6_Click);
             // 
             // cmbPart
             // 
@@ -447,6 +448,8 @@
 
         }
 
+
+
         #endregion
 
         private System.Windows.Forms.Button btnDelete;
@@ -481,5 +484,8 @@
         private System.Windows.Forms.Label lblLinkConns;
         private System.Windows.Forms.ComboBox cmbPart;
         private System.Windows.Forms.Label lblLinkPart;
+        private EventHandler label5_Click;
+        private EventHandler label6_Click;
+        private EventHandler label2_Click;
     }
 }

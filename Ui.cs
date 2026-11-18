@@ -114,20 +114,76 @@ namespace QcApp
 
         public static DataGridView Grid()
         {
-            return new DataGridView
+            var g = new DataGridView
             {
                 Dock = DockStyle.Fill,
                 AutoGenerateColumns = false,
                 ReadOnly = true,
                 AllowUserToAddRows = false,
-                AllowUserToDeleteRows = false,
+                AllowUserToDeleteRows = true,
                 SelectionMode = DataGridViewSelectionMode.FullRowSelect,
-                MultiSelect = false,
+                MultiSelect = true,
                 AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
-                RowHeadersVisible = false,
+                RowHeadersVisible = true,
                 BackgroundColor = Color.White,
                 RightToLeft = RightToLeft.Yes
             };
+            g.DataError += GridError;      // every grid built here never shows the default error dialog
+            return g;
+        }
+        public static void NumberRows(DataGridView g)
+        {
+            g.RowPostPaint += (s, e) =>
+            {
+                var grid = (DataGridView)s!;
+                var text = (e.RowIndex + 1).ToString();
+
+                using var brush = new SolidBrush(grid.RowHeadersDefaultCellStyle.ForeColor);
+
+                var bounds = new Rectangle(
+                    e.RowBounds.Left,
+                    e.RowBounds.Top,
+                    grid.RowHeadersWidth,
+                    e.RowBounds.Height);
+
+                TextRenderer.DrawText(
+                    e.Graphics,
+                    text,
+                    grid.Font,
+                    bounds,
+                    grid.RowHeadersDefaultCellStyle.ForeColor,
+                    TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+            };
+        }
+        static bool _gridErrorShowing;
+
+        // Replaces the default "DataGridView Default Error Dialog" (wrong type, value not valid, ...).
+        // Hook it on any grid with:  grid.DataError += Ui.GridError;
+        public static void GridError(object? sender, DataGridViewDataErrorEventArgs e)
+        {
+            e.ThrowException = false;
+
+            // while painting or measuring nobody typed anything, so just leave the cell blank
+            const DataGridViewDataErrorContexts typed =
+                DataGridViewDataErrorContexts.Parsing |
+                DataGridViewDataErrorContexts.Commit |
+                DataGridViewDataErrorContexts.LeaveControl;
+            if ((e.Context & typed) == 0) return;
+            if (_gridErrorShowing) return;
+
+            string col = "";
+            var g = sender as DataGridView;
+            if (g != null && e.ColumnIndex >= 0 && e.ColumnIndex < g.Columns.Count)
+                col = g.Columns[e.ColumnIndex].HeaderText.Replace("\r", " ").Replace("\n", " ").Trim();
+
+            _gridErrorShowing = true;
+            try
+            {
+                Msg.Show(col.Length > 0
+                    ? "مقدار واردشده برای «" + col + "» معتبر نیست. مقدار درست را وارد کنید."
+                    : "مقدار واردشده معتبر نیست.");
+            }
+            finally { _gridErrorShowing = false; }
         }
 
         public static void AddCol(DataGridView g, string header, string property)
@@ -144,11 +200,11 @@ namespace QcApp
         {
             g.CellFormatting += (s, e) =>
             {
-                if (e.ColumnIndex == 0)
-                {
-                    e.Value = e.RowIndex + 1;
-                    e.FormattingApplied = true;
-                }
+                if (e.RowIndex < 0 || e.ColumnIndex != 0)
+                    return;
+
+                e.Value = e.RowIndex + 1;
+                e.FormattingApplied = true;
             };
         }
 
