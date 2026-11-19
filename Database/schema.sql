@@ -1,16 +1,3 @@
-/*
-  QC1 database schema (SQL Server).
-  Columns match the queries in Data/*.cs and Forms/*.cs.
-
-  Run once in SSMS (or: sqlcmd -S localhost -E -i Database\schema.sql).
-  Safe to run again: existing tables are left alone, missing ones are created.
-
-  Delete rules used by the code:
-    - deleting an InspectionReport / WeldReport / Ncr removes its rows (CASCADE)
-    - deleting a Part removes its PartConnection links (CASCADE)
-    - a Part or Connection used in any report cannot be deleted (error 547,
-      the forms show "used in an inspection report")
-*/
 
 IF DB_ID(N'QC1') IS NULL
     CREATE DATABASE QC1;
