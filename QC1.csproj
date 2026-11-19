@@ -214,34 +214,19 @@
     </Compile>
     <Compile Include="Data\InspectionRepo.cs" />
     <Compile Include="Data\WeldRepo.cs" />
+    <Compile Include="Forms\UltrasonicForm.cs" />
+    <Compile Include="Helpers\QcRules.cs" />
     <Compile Include="Helpers\ReportPrinter.cs" />
-    <Compile Include="Forms\DimensionalForm.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="Forms\InspectionBase.cs">
-      <SubType>Form</SubType>
-    </Compile>
+    <Compile Include="Forms\DimensionalForm.cs" />
+    <Compile Include="Forms\InspectionBase.cs" />
     <Compile Include="Forms\MainMenuForm.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="Forms\NcrForm.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="Forms\PartPickerDialog.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="Forms\PenetrantForm.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="Forms\UltrasonicForm.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="Forms\VisualForm.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="Forms\WeldChecklistForm.cs">
-      <SubType>Form</SubType>
-    </Compile>
+    <Compile Include="Forms\NcrForm.cs" />
+    <Compile Include="Forms\PartPickerDialog.cs" />
+    <Compile Include="Forms\PenetrantForm.cs" />
+    <Compile Include="Forms\VisualForm.cs" />
+    <Compile Include="Forms\WeldChecklistForm.cs" />
     <Compile Include="Helpers\Calendar.cs" />
     <Compile Include="Helpers\Msg.cs" />
     <Compile Include="Helpers\Session.cs" />
@@ -271,6 +256,9 @@
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
     <None Include="packages.config" />
+    <None Include="Database\schema.sql" />
+    <None Include="Templates\parts_template.xlsx" />
+    <None Include="Templates\connections_template.xlsx" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>

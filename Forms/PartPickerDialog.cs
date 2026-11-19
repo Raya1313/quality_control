@@ -9,6 +9,7 @@ using System.Windows.Forms;
 namespace WindowsFormsApp1.Forms
 {
     // The three ways the PDF asks for to pick parts: one by one, from the list, or random by percent.
+    [System.ComponentModel.DesignerCategory("Code")]   // built in code: open it with View Code, not the designer
     public class PartPickerDialog : Form
     {
         readonly List<Part> _parts;
@@ -139,7 +140,7 @@ namespace WindowsFormsApp1.Forms
 
         int RandomCount()
         {
-            return (int)Math.Ceiling(_all.Count * _percent.Value / 100m);
+            return QcRules.RandomCount(_all.Count, _percent.Value);
         }
 
         void UpdateRandomLabel()

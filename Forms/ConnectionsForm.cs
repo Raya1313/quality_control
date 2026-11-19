@@ -292,7 +292,7 @@ namespace WindowsFormsApp1.Forms
         }
 
 
-        // Excel columns: code, quantity, weight, plate thickness (optional). Row 1 is a header.
+        // Excel columns (PDF page 2): code, quantity, weight, plate thickness. Row 1 is a header.
         void ImportExcel()
         {
             using (var dlg = new OpenFileDialog { Filter = "Excel|*.xlsx" })
@@ -313,22 +313,20 @@ namespace WindowsFormsApp1.Forms
                             return;
                         }
 
-                        int rowNumber = 0;
-
                         foreach (var r in used.RowsUsed().Skip(1))
                         {
-                            rowNumber++;
+                            int rowNumber = r.RowNumber();
 
                             int q;
                             decimal w, t;
 
-                            int? qty = r.Cell(3).TryGetValue<int>(out q)
+                            int? qty = r.Cell(2).TryGetValue<int>(out q)
                                 ? q : (int?)null;
 
-                            decimal? weight = r.Cell(4).TryGetValue<decimal>(out w)
+                            decimal? weight = r.Cell(3).TryGetValue<decimal>(out w)
                                 ? w : (decimal?)null;
 
-                            decimal? thick = r.Cell(2).TryGetValue<decimal>(out t)
+                            decimal? thick = r.Cell(4).TryGetValue<decimal>(out t)
                                 ? t : (decimal?)null;
 
                             string err;
@@ -402,8 +400,8 @@ namespace WindowsFormsApp1.Forms
             }
             catch (SqlException ex) when (ex.Number == 2627 || ex.Number == 2601)
             {
-                Msg.Show("جدول PartConnection اجازه لینک شدن یک اتصال به چند قطعه را نمی‌دهد.\n" +
-                         "اسکریپت fix_connection_tables.sql را در SSMS اجرا کنید.");
+                Msg.Show("کلید جدول PartConnection باید (PartId, ConnectionId) باشد تا یک اتصال به چند قطعه لینک شود.\n" +
+                         "فایل Database\\schema.sql را ببینید.");
                 return;
             }
 

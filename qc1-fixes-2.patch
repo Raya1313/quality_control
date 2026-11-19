@@ -1,0 +1,325 @@
+diff -ruN a/Forms/ConnectionsForm.cs b/Forms/ConnectionsForm.cs
+--- a/Forms/ConnectionsForm.cs	2026-11-18 19:00:11.000000000 +0000
++++ b/Forms/ConnectionsForm.cs	2026-11-19 09:15:50.732372489 +0000
+@@ -82,14 +82,7 @@
+             Ui.AddCol(_grid, "قطعات مرتبط", "LinkedParts");
+             _grid.DataSource = _rows;
+ 
+-            _grid.CellFormatting += (s, e) =>
+-            {
+-                if (e.RowIndex < 0 || e.ColumnIndex != 0)
+-                    return;
+-
+-                e.Value = (e.RowIndex + 1).ToString();
+-                e.FormattingApplied = true;
+-            };
++            Ui.NumberFirstColumn(_grid);
+             body.Controls.Add(_grid, 0, 0);
+             body.Controls.Add(BuildLinkPanel(), 1, 0);
+ 
+diff -ruN a/Forms/DimensionalForm.cs b/Forms/DimensionalForm.cs
+--- a/Forms/DimensionalForm.cs	2026-11-18 19:00:11.000000000 +0000
++++ b/Forms/DimensionalForm.cs	2026-11-19 09:15:50.732882764 +0000
+@@ -36,7 +36,7 @@
+         protected override bool ValidateExtra()
+         {
+             System.DateTime before, after;
+-            if (TryDate("DateBefore", out before) && TryDate("DateAfter", out after) && after < before)
++            if (TryDate("DateBefore", out before) && TryDate("DateAfter", out after) && QcRules.EndBeforeStart(before, after))
+             {
+                 Msg.Show("تاریخ شروع بازرسی «بعد» نمی‌تواند قبل از تاریخ «قبل» باشد.");
+                 return false;
+@@ -71,6 +71,7 @@
+                 Revision = "Revision Date: 1403/10/01",
+                 InfoColumns = 2,
+                 Landscape = true,
++                NumberBlankRows = true,
+                 MinRows = 15,
+                 Headers = new[] { "NO.", "Item No.", "QTY", "Fit up Result", "Welding Result", "Dim. Check after weld",
+                                   "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L" },
+diff -ruN a/Forms/InspectionBase.cs b/Forms/InspectionBase.cs
+--- a/Forms/InspectionBase.cs	2026-11-18 19:54:21.800463418 +0000
++++ b/Forms/InspectionBase.cs	2026-11-19 09:15:50.724423314 +0000
+@@ -136,7 +136,7 @@
+ 
+         static bool IsBlankDate(string s)
+         {
+-            return s.Replace("/", "").Trim().Length == 0;
++            return QcRules.IsBlankDateText(s);
+         }
+ 
+         // ---- grid columns ---------------------------------------------------
+@@ -329,6 +329,7 @@
+         {
+             Grid.EndEdit();
+             if (RowsList.Count == 0) { Msg.Show("لیست خالی است."); return; }
++            if (!ValidateDates() || !ValidateExtra()) return;     // the printout must not show a date the save would refuse
+             ReportPrinter.Preview(BuildDocs());
+         }
+ 
+diff -ruN a/Forms/NcrForm.cs b/Forms/NcrForm.cs
+--- a/Forms/NcrForm.cs	2026-11-18 19:00:11.000000000 +0000
++++ b/Forms/NcrForm.cs	2026-11-19 09:15:50.732055013 +0000
+@@ -258,17 +258,27 @@
+             if (_gridChecks != null) _gridChecks.EndEdit();
+             DateTime d;
+             if (!Calendar.TryParse(_date.Text, out d)) { Msg.Show("تاریخ نامعتبر است."); return false; }
+-            if (d.Date < Session.Project.ContractDate.Date)
++            if (QcRules.IsBeforeContract(d, Session.Project.ContractDate))
+             {
+                 Msg.Show("تاریخ نمی‌تواند قبل از تاریخ عقد قرارداد (" + Calendar.ToText(Session.Project.ContractDate) + ") باشد.");
+                 return false;
+             }
+ 
+             DateTime? deadline = null;
+-            if (_deadline.Text.Replace("/", "").Trim().Length > 0)
++            if (!QcRules.IsBlankDateText(_deadline.Text))
+             {
+                 DateTime dl;
+                 if (!Calendar.TryParse(_deadline.Text, out dl)) { Msg.Show("مهلت تکمیل نامعتبر است."); return false; }
++                if (QcRules.IsBeforeContract(dl, Session.Project.ContractDate))
++                {
++                    Msg.Show("مهلت تکمیل نمی‌تواند قبل از تاریخ عقد قرارداد (" + Calendar.ToText(Session.Project.ContractDate) + ") باشد.");
++                    return false;
++                }
++                if (QcRules.EndBeforeStart(d, dl))
++                {
++                    Msg.Show("مهلت تکمیل نمی‌تواند قبل از تاریخ عدم انطباق باشد.");
++                    return false;
++                }
+                 deadline = dl;
+             }
+ 
+diff -ruN a/Forms/PartsForm.cs b/Forms/PartsForm.cs
+--- a/Forms/PartsForm.cs	2026-11-18 19:54:21.800700544 +0000
++++ b/Forms/PartsForm.cs	2026-11-19 09:15:50.732456444 +0000
+@@ -23,11 +23,7 @@
+             dgvParts.AutoGenerateColumns = false;
+             dgvParts.DataError += QcApp.Ui.GridError;
+             dgvParts.DataSource = _parts;
+-            dgvParts.DataBindingComplete += (s, e) =>
+-            {
+-                for (int i = 0; i < dgvParts.Rows.Count; i++)
+-                    dgvParts.Rows[i].Cells[colRow.Index].Value = i + 1;
+-            };
++            QcApp.Ui.NumberColumn(dgvParts, colRow.Index);
+ 
+             picLogo.Image = Session.LogoImage();
+             LoadFromDb();
+diff -ruN a/Forms/PenetrantForm.cs b/Forms/PenetrantForm.cs
+--- a/Forms/PenetrantForm.cs	2026-11-15 15:20:29.000000000 +0000
++++ b/Forms/PenetrantForm.cs	2026-11-19 09:15:50.733033740 +0000
+@@ -79,6 +79,7 @@
+                 Code = "Code: QC-FR-04/02",
+                 Revision = "Revision Date: 1403/10/01",
+                 InfoColumns = 2,
++                NumberBlankRows = true,
+                 MinRows = 15,
+                 Sketch = SketchImage(Sketch),
+                 Headers = new[] { "Row", "Name", "Position", "Level / Direction", "Type Of Discontinuity",
+diff -ruN a/Forms/VisualForm.cs b/Forms/VisualForm.cs
+--- a/Forms/VisualForm.cs	2026-11-18 19:54:21.800614680 +0000
++++ b/Forms/VisualForm.cs	2026-11-19 09:15:50.732961881 +0000
+@@ -73,6 +73,7 @@
+                 Code = "Code: QC-FR-04/02",
+                 Revision = "Revision Date: 1403/10/01",
+                 InfoColumns = 2,
++                NumberBlankRows = true,
+                 MinRows = 20,
+                 Headers = new[] { "NO", "Name", "Type", "Porosity", "Under cut", "Crack", "End Crater", "LOF", "Other",
+                                   "Accepted", "Repair", "Accepted Repair", "Defective Position" },
+diff -ruN a/Forms/WeldChecklistForm.cs b/Forms/WeldChecklistForm.cs
+--- a/Forms/WeldChecklistForm.cs	2026-11-18 19:54:21.800354978 +0000
++++ b/Forms/WeldChecklistForm.cs	2026-11-19 09:15:50.724801166 +0000
+@@ -278,6 +278,27 @@
+             _rows.Remove(x);
+         }
+ 
++        // the dates already in the list (they may come from an older save or an older contract date)
++        bool RowDatesOk()
++        {
++            var contract = Session.Project.ContractDate.Date;
++            foreach (var r in _rows)
++            {
++                if (QcRules.IsBeforeContract(r.ReportDate, contract) || QcRules.IsBeforeContract(r.DuringDate, contract))
++                {
++                    Msg.Show("تاریخ قطعه " + r.PartLabel + " قبل از تاریخ عقد قرارداد (" +
++                             Calendar.ToText(contract) + ") است. لیست را دوباره ایجاد کنید.");
++                    return false;
++                }
++                if (QcRules.EndBeforeStart(r.ReportDate, r.DuringDate))
++                {
++                    Msg.Show("تاریخ «حین جوشکاری» قطعه " + r.PartLabel + " قبل از تاریخ «قبل از جوشکاری» است.");
++                    return false;
++                }
++            }
++            return true;
++        }
++
+         void Save()
+         {
+             _grid.EndEdit();
+@@ -285,6 +306,7 @@
+ 
+             DateTime start;
+             if (!TryReadStart(out start)) return;
++            if (!RowDatesOk()) return;
+ 
+             var r = new WeldReport
+             {
+@@ -344,6 +366,9 @@
+             _grid.EndEdit();
+             if (_rows.Count == 0) { Msg.Show("لیست خالی است."); return; }
+ 
++            DateTime printStart;
++            if (!TryReadStart(out printStart) || !RowDatesOk()) return;
++
+             var d = new ReportDoc
+             {
+                 Title = "چک لیست بازرسی قبل و حین جوشکاری",
+diff -ruN a/Helpers/QcRules.cs b/Helpers/QcRules.cs
+--- a/Helpers/QcRules.cs	2026-11-18 19:54:45.977640704 +0000
++++ b/Helpers/QcRules.cs	2026-11-19 09:15:50.721163183 +0000
+@@ -29,6 +29,18 @@
+         return "";
+     }
+ 
++    // an empty masked date box reads "____/__/__"; prompt marks, slashes and spaces all count as blank
++    public static bool IsBlankDateText(string text)
++    {
++        return (text ?? "").Replace("/", "").Replace("_", "").Trim().Length == 0;
++    }
++
++    // p.6: the "after" date may not be earlier than the "before" date (the same day is fine)
++    public static bool EndBeforeStart(DateTime start, DateTime end)
++    {
++        return end.Date < start.Date;
++    }
++
+     // p.1-2 note 2: no duplicate entries (case and surrounding spaces are ignored)
+     public static bool IsDuplicate(IEnumerable<string> existing, string name)
+     {
+diff -ruN a/Helpers/ReportPrinter.cs b/Helpers/ReportPrinter.cs
+--- a/Helpers/ReportPrinter.cs	2026-11-15 15:20:29.000000000 +0000
++++ b/Helpers/ReportPrinter.cs	2026-11-19 09:15:50.732742433 +0000
+@@ -21,6 +21,7 @@
+     public float[] Widths = new float[0];                  // relative widths, one per header
+     public List<string[]> Rows = new List<string[]>();
+     public int MinRows = 15;                               // blank rows added up to this count
++    public bool NumberBlankRows;                           // blank rows carry their row number in the first column
+     public string[] Signers = new string[0];               // "Label\nName: ..."
+     public bool Landscape;
+     public bool Rtl;                                       // Persian forms: columns run right to left
+@@ -223,9 +224,17 @@
+         int blanks = Math.Max(0, d.MinRows - d.Rows.Count);
+         var empty = new string[d.Headers.Length];
+         for (int i = 0; i < d.Headers.Length; i++) empty[i] = "";
++        int number = d.Rows.Count;
+         while (blanks > 0 && y + rh <= limit)
+         {
+-            DrawRow(g, d, widths, b, y, rh, empty, false);
++            var cells = empty;
++            if (d.NumberBlankRows && empty.Length > 0)
++            {
++                number++;
++                cells = (string[])empty.Clone();
++                cells[0] = number.ToString();
++            }
++            DrawRow(g, d, widths, b, y, rh, cells, false);
+             y += rh;
+             blanks--;
+         }
+diff -ruN a/Tests/QC1.Tests/Program.cs b/Tests/QC1.Tests/Program.cs
+--- a/Tests/QC1.Tests/Program.cs	2026-11-18 19:54:45.977812575 +0000
++++ b/Tests/QC1.Tests/Program.cs	2026-11-19 09:16:17.870088668 +0000
+@@ -146,6 +146,58 @@
+         Check("p.4", "report dates never go backwards", nonDecreasing);
+         Check("p.4", "capacity or gap of 0 does not crash", QcRules.WeldReportDate(s2, 5, 0, 0) == s2);
+ 
++        // ---- empty date boxes and the "after" date (p.6) ----
++        Check("p.6", "an empty masked date box counts as blank", QcRules.IsBlankDateText("____/__/__"));
++        Check("p.6", "blank with spaces or nothing counts as blank", QcRules.IsBlankDateText("  /  /  ") && QcRules.IsBlankDateText(""));
++        Check("p.6", "a half-typed date is not blank", !QcRules.IsBlankDateText("1404/05/__"));
++        Check("p.6", "a full date is not blank", !QcRules.IsBlankDateText("1404/05/05"));
++        Check("p.6", "after date one day before the before date is refused", QcRules.EndBeforeStart(D("1404/05/10"), D("1404/05/09")));
++        Check("p.6", "after date on the same day is accepted", !QcRules.EndBeforeStart(D("1404/05/10"), D("1404/05/10")));
++        Check("p.6", "after date later is accepted", !QcRules.EndBeforeStart(D("1404/05/10"), D("1404/06/01")));
++        Check("p.6", "time of day is ignored in the after check", !QcRules.EndBeforeStart(D("1404/05/10").AddHours(20), D("1404/05/10")));
++
++        // ---- source guards: the date and numbering rules stay wired into every form ----
++        // These read the form files as text. They fail if a validation call or numbering call is removed again.
++        string appRoot = AppDomain.CurrentDomain.BaseDirectory;
++        while (appRoot != null && !System.IO.File.Exists(System.IO.Path.Combine(appRoot, "QC1.csproj")))
++            appRoot = System.IO.Path.GetDirectoryName(appRoot.TrimEnd(System.IO.Path.DirectorySeparatorChar));
++        Check("guard", "project folder found from the test output folder", appRoot != null);
++        if (appRoot != null)
++        {
++            Func<string, string> appSrc = rel => System.IO.File.ReadAllText(System.IO.Path.Combine(appRoot, rel));
++            Func<string, string, string> bodyOf = (text, marker) =>
++            {
++                int i = text.IndexOf(marker, StringComparison.Ordinal);
++                return i < 0 ? "" : text.Substring(i, Math.Min(700, text.Length - i));
++            };
++            var inspBase = appSrc("Forms/InspectionBase.cs");
++            var weld = appSrc("Forms/WeldChecklistForm.cs");
++            var ncr = appSrc("Forms/NcrForm.cs");
++
++            Check("p.3-4", "DT, VT, UT and PT all register a date field",
++                new[] { "DimensionalForm", "VisualForm", "UltrasonicForm", "PenetrantForm" }
++                    .All(f => appSrc("Forms/" + f + ".cs").Contains("AddDate(")));
++            Check("p.3-4", "inspection forms check the contract date when saving", bodyOf(inspBase, "void Save()").Contains("ValidateDates()"));
++            Check("p.3-4", "inspection forms check the contract date before printing", bodyOf(inspBase, "void Print()").Contains("ValidateDates()"));
++            Check("p.3-4", "inspection date check uses the shared contract rule", bodyOf(inspBase, "bool ValidateDates()").Contains("QcRules.IsBeforeContract"));
++            Check("p.6", "DT refuses an after date before the before date", appSrc("Forms/DimensionalForm.cs").Contains("QcRules.EndBeforeStart"));
++            Check("p.3-4", "weld checklist checks start and row dates when saving", bodyOf(weld, "void Save()").Contains("TryReadStart") && bodyOf(weld, "void Save()").Contains("RowDatesOk()"));
++            Check("p.3-4", "weld checklist checks start and row dates before printing", bodyOf(weld, "void Print()").Contains("TryReadStart") && bodyOf(weld, "void Print()").Contains("RowDatesOk()"));
++            Check("p.13", "NCR checks both its date and its deadline against the contract date",
++                ncr.Split(new[] { "QcRules.IsBeforeContract(" }, StringSplitOptions.None).Length - 1 >= 2);
++            Check("p.13", "NCR refuses a deadline before its own date", ncr.Contains("QcRules.EndBeforeStart"));
++            Check("p.13", "NCR date is checked before printing (print reads the editor first)", bodyOf(ncr, "void Print()").Contains("Read()"));
++
++            Check("row no.", "inspection grids number their rows", inspBase.Contains("Ui.NumberFirstColumn(Grid)"));
++            Check("row no.", "weld checklist grid numbers its rows", weld.Contains("Ui.NumberFirstColumn(_grid)"));
++            Check("row no.", "NCR list numbers its rows", ncr.Contains("Ui.NumberFirstColumn(_listGrid)"));
++            Check("row no.", "connections grid numbers its rows", appSrc("Forms/ConnectionsForm.cs").Contains("Ui.NumberFirstColumn(_grid)"));
++            Check("row no.", "parts grid numbers its row column", appSrc("Forms/PartsForm.cs").Contains("NumberColumn(dgvParts, colRow.Index)"));
++            Check("row no.", "DT, VT and PT printouts number their blank rows (as in the PDF samples)",
++                new[] { "DimensionalForm", "VisualForm", "PenetrantForm" }.All(f => appSrc("Forms/" + f + ".cs").Contains("NumberBlankRows = true")));
++            Check("row no.", "UT printout leaves blank rows unnumbered (as in the PDF sample)", !appSrc("Forms/UltrasonicForm.cs").Contains("NumberBlankRows"));
++        }
++
+         Console.WriteLine();
+         Console.WriteLine(_pass + " passed, " + _fail + " failed");
+         return _fail == 0 ? 0 : 1;
+diff -ruN a/Ui.cs b/Ui.cs
+--- a/Ui.cs	2026-11-18 08:59:24.000000000 +0000
++++ b/Ui.cs	2026-11-19 09:15:50.732254255 +0000
+@@ -195,17 +195,25 @@
+             });
+         }
+ 
+-        // first column of the grid shows 1, 2, 3 ...
+-        public static void NumberFirstColumn(DataGridView g)
++        // the given column of the grid shows 1, 2, 3 ... and follows the list when rows are added or removed
++        public static void NumberColumn(DataGridView g, int columnIndex)
+         {
+             g.CellFormatting += (s, e) =>
+             {
+-                if (e.RowIndex < 0 || e.ColumnIndex != 0)
++                if (e.RowIndex < 0 || e.ColumnIndex != columnIndex)
+                     return;
+ 
+                 e.Value = e.RowIndex + 1;
+                 e.FormattingApplied = true;
+             };
++            g.RowsAdded += (s, e) => g.Invalidate();
++            g.RowsRemoved += (s, e) => g.Invalidate();
++        }
++
++        // first column of the grid shows 1, 2, 3 ...
++        public static void NumberFirstColumn(DataGridView g)
++        {
++            NumberColumn(g, 0);
+         }
+ 
+         // delete button, hint, green confirm button

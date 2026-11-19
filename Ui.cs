@@ -1,4 +1,5 @@
-﻿using System;
+﻿#nullable enable
+using System;
 using System.Drawing;
 using System.Windows.Forms;
 
@@ -40,7 +41,7 @@ namespace QcApp
         }
 
         // purple banner: logo on the right, title in the middle, optional control on the left
-        public static Control Banner(string title, out PictureBox logo, Control leftControl)
+        public static Control Banner(string title, out PictureBox logo, Control? leftControl)
         {
             var t = new TableLayoutPanel
             {
@@ -195,17 +196,24 @@ namespace QcApp
             });
         }
 
-        // first column of the grid shows 1, 2, 3 ...
+        public const string RowHeader = "ردیف";
+
+        // the column headed "ردیف" (or the first column) shows 1, 2, 3 ... automatically.
+        // It is computed while painting, so it is never blank and stays right after add/delete/re-bind.
         public static void NumberFirstColumn(DataGridView g)
         {
             g.CellFormatting += (s, e) =>
             {
-                if (e.RowIndex < 0 || e.ColumnIndex != 0)
-                    return;
-
-                e.Value = e.RowIndex + 1;
+                if (e.RowIndex < 0 || e.ColumnIndex < 0) return;
+                var col = g.Columns[e.ColumnIndex];
+                bool isNumber = col.HeaderText.Trim() == RowHeader || (e.ColumnIndex == 0 && col.DataPropertyName == "");
+                if (!isNumber) return;
+                e.Value = (e.RowIndex + 1).ToString();
                 e.FormattingApplied = true;
             };
+            g.RowsAdded += (s, e) => g.Invalidate();
+            g.RowsRemoved += (s, e) => g.Invalidate();
+            g.DataBindingComplete += (s, e) => g.Invalidate();
         }
 
         // delete button, hint, green confirm button

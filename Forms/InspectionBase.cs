@@ -13,6 +13,7 @@ namespace WindowsFormsApp1.Forms
 {
     // Shared screen for the DT, VT, UT and PT reports: header fields, part picking
     // (manual / list / random), editable grid, save, preview and print.
+    [System.ComponentModel.DesignerCategory("Code")]   // built in code: open it with View Code, not the designer
     public abstract class InspectionBase : Form
     {
         static readonly System.Globalization.CultureInfo Inv = System.Globalization.CultureInfo.InvariantCulture;
@@ -136,7 +137,7 @@ namespace WindowsFormsApp1.Forms
 
         static bool IsBlankDate(string s)
         {
-            return s.Replace("/", "").Trim().Length == 0;
+            return QcRules.IsBlankDateText(s);
         }
 
         // ---- grid columns ---------------------------------------------------
@@ -254,7 +255,7 @@ namespace WindowsFormsApp1.Forms
                     Msg.Show("تاریخ «" + kv.Value + "» نامعتبر است.");
                     return false;
                 }
-                if (d.Date < contract)
+                if (QcRules.IsBeforeContract(d, contract))
                 {
                     Msg.Show("«" + kv.Value + "» نمی‌تواند قبل از تاریخ عقد قرارداد (" +
                              Calendar.ToText(contract) + ") باشد.");
@@ -262,6 +263,15 @@ namespace WindowsFormsApp1.Forms
                 }
             }
             return true;
+        }
+
+        // form-specific checks before saving
+        protected virtual bool ValidateExtra() { return true; }
+
+        protected bool TryDate(string key, out DateTime d)
+        {
+            d = default;
+            return P(key).Length > 0 && Calendar.TryParse(P(key), out d);
         }
 
         Dictionary<string, string> Params()
@@ -292,7 +302,7 @@ namespace WindowsFormsApp1.Forms
         {
             Grid.EndEdit();
             if (RowsList.Count == 0) { Msg.Show("لیست خالی است."); return; }
-            if (!ValidateDates()) return;
+            if (!ValidateDates() || !ValidateExtra()) return;
 
             try
             {
@@ -320,6 +330,7 @@ namespace WindowsFormsApp1.Forms
         {
             Grid.EndEdit();
             if (RowsList.Count == 0) { Msg.Show("لیست خالی است."); return; }
+            if (!ValidateDates() || !ValidateExtra()) return;     // the printout must not show a date the save would refuse
             ReportPrinter.Preview(BuildDocs());
         }
 

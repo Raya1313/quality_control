@@ -6,6 +6,7 @@ using System.ComponentModel;
 namespace WindowsFormsApp1.Forms
 {
     // Section 4: visual test (VT)
+    [System.ComponentModel.DesignerCategory("Code")]   // built in code: open it with View Code, not the designer
     public class VisualForm : InspectionBase
     {
         readonly BindingList<VtRow> _rows = new BindingList<VtRow>();
@@ -40,13 +41,10 @@ namespace WindowsFormsApp1.Forms
             Start();
         }
 
+        // PDF page 1: C = column, B = beam, R / RA = rafter; a leading number is the phase (2C4 = phase 2)
         static string GuessType(string partName)
         {
-            var s = partName.Trim().ToUpperInvariant();
-            if (s.StartsWith("RA") || s.StartsWith("R")) return "Rafter";
-            if (s.StartsWith("B")) return "Beam";
-            if (s.StartsWith("C")) return "Column";
-            return "";
+            return QcRules.PartType(partName);
         }
 
         protected override void AddRowsFor(PartPick p)
@@ -76,6 +74,7 @@ namespace WindowsFormsApp1.Forms
                 Code = "Code: QC-FR-04/02",
                 Revision = "Revision Date: 1403/10/01",
                 InfoColumns = 2,
+                NumberBlankRows = true,
                 MinRows = 20,
                 Headers = new[] { "NO", "Name", "Type", "Porosity", "Under cut", "Crack", "End Crater", "LOF", "Other",
                                   "Accepted", "Repair", "Accepted Repair", "Defective Position" },

@@ -7,6 +7,7 @@ using System.Linq;
 namespace WindowsFormsApp1.Forms
 {
     // Section 3: dimensional control (DT)
+    [System.ComponentModel.DesignerCategory("Code")]   
     public class DimensionalForm : InspectionBase
     {
         readonly BindingList<DtRow> _rows = new BindingList<DtRow>();
@@ -31,6 +32,17 @@ namespace WindowsFormsApp1.Forms
                 Chk("نقطه " + c, "Cp" + c, 50);
 
             Start();
+        }
+
+        protected override bool ValidateExtra()
+        {
+            System.DateTime before, after;
+            if (TryDate("DateBefore", out before) && TryDate("DateAfter", out after) && QcRules.EndBeforeStart(before, after))
+            {
+                Msg.Show("تاریخ شروع بازرسی «بعد» نمی‌تواند قبل از تاریخ «قبل» باشد.");
+                return false;
+            }
+            return true;
         }
 
         protected override void AddRowsFor(PartPick p)
@@ -60,6 +72,7 @@ namespace WindowsFormsApp1.Forms
                 Revision = "Revision Date: 1403/10/01",
                 InfoColumns = 2,
                 Landscape = true,
+                NumberBlankRows = true,
                 MinRows = 15,
                 Headers = new[] { "NO.", "Item No.", "QTY", "Fit up Result", "Welding Result", "Dim. Check after weld",
                                   "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L" },

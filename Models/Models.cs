@@ -108,7 +108,8 @@ public class WeldRow : InstanceRow
     public string ConnectionCode { get; set; } = "";
     public string ReportDateText => Calendar.ToText(ReportDate);
     public string DuringDateText => Calendar.ToText(DuringDate);
-    public string CutType => PlateThickness > 15 ? "گرم" : "سرد";   // PL>15mm hot, PL<=15mm cold
+    // PL>15mm hot, PL<=15mm cold; blank when the connection has no thickness
+    public string CutType => !PlateThickness.HasValue ? "" : PlateThickness > 15 ? "گرم" : "سرد";
 }
 
 public class DtRow : InstanceRow
@@ -183,6 +184,7 @@ public class Ncr
     public string HallSupervisor { get; set; } = "";
     public string Inspector { get; set; } = "";
     public string Preparer { get; set; } = "";
+    public string FollowUpBy { get; set; } = "";      // مسئول پیگیری, signs the execution results
     public string Description { get; set; } = "";
     public string Severity { get; set; } = "";
     public string TaskDescription { get; set; } = "";

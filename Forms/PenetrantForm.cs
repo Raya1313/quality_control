@@ -6,6 +6,7 @@ using System.ComponentModel;
 namespace WindowsFormsApp1.Forms
 {
     // Section 6: liquid penetrant (PT)
+    [System.ComponentModel.DesignerCategory("Code")]   // built in code: open it with View Code, not the designer
     public class PenetrantForm : InspectionBase
     {
         readonly BindingList<PtRow> _rows = new BindingList<PtRow>();
@@ -79,6 +80,7 @@ namespace WindowsFormsApp1.Forms
                 Code = "Code: QC-FR-04/02",
                 Revision = "Revision Date: 1403/10/01",
                 InfoColumns = 2,
+                NumberBlankRows = true,
                 MinRows = 15,
                 Sketch = SketchImage(Sketch),
                 Headers = new[] { "Row", "Name", "Position", "Level / Direction", "Type Of Discontinuity",

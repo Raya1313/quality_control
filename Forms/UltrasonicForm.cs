@@ -7,6 +7,7 @@ using System.Linq;
 namespace WindowsFormsApp1.Forms
 {
     // Section 5: ultrasonic inspection (UT), page 1 (spec + sketch) and page 2 (weld table)
+    [System.ComponentModel.DesignerCategory("Code")]   // built in code: open it with View Code, not the designer
     public class UltrasonicForm : InspectionBase
     {
         readonly BindingList<UtRow> _rows = new BindingList<UtRow>();
@@ -83,67 +84,92 @@ namespace WindowsFormsApp1.Forms
 
         static string Num(decimal? v) { return v.HasValue ? v.Value.ToString("0.##") : ""; }
 
-        // for each part instance: page 1 of 2 (specification, sketch) and page 2 of 2 (welds)
+        const int RowsPerPage = 20;          // the table of the PDF sample (page 2 of 2) has 20 rows
+
+        // page 1 names the inspected items once, e.g. "C1  1/11, 2/11 ; B2  1/4"
+        static string ItemList(IEnumerable<UtRow> rows)
+        {
+            var parts = new List<string>();
+            foreach (var g in rows.GroupBy(r => r.PartId))
+            {
+                var first = g.First();
+                var numbers = g.Select(r => r.InstanceNo).Distinct().OrderBy(i => i)
+                               .Select(i => i + "/" + first.InstanceTotal);
+                parts.Add(first.PartName + "  " + string.Join(", ", numbers));
+            }
+            return string.Join(" ; ", parts);
+        }
+
+        // One specification page (the sketch and test data are the same for every item), then the weld table
+        // with 20 rows to a page. The page count follows the number of rows, not 2 pages for every part.
         protected override List<ReportDoc> BuildDocs()
         {
             var docs = new List<ReportDoc>();
-            var groups = _rows.GroupBy(r => r.PartId + ":" + r.InstanceNo);
+            var rows = _rows.ToList();
+            int tablePages = QcRules.TablePages(rows.Count, RowsPerPage);
+            int total = 1 + tablePages;
+            bool manyItems = rows.Select(r => r.PartId + ":" + r.InstanceNo).Distinct().Count() > 1;
 
-            foreach (var gr in groups)
+            var p1 = new ReportDoc
             {
-                var first = gr.First();
+                Title = "ULTRASONIC INSPECTION REPORT",
+                Code = "Process ID: QC   FR   No: 6   Rev.: 2",
+                Revision = "PAGE : 1 OF " + total,
+                InfoColumns = 2,
+                Sketch = SketchImage(Sketch),
+                SketchCaption = "Sketch:"
+            };
+            p1.Info.Add(new[] { "Project:", ProjectEn() });
+            p1.Info.Add(new[] { "Request No:", "" });
+            p1.Info.Add(new[] { "Client:", ClientEn() });
+            p1.Info.Add(new[] { "Faze:", PhaseText() });
+            p1.Info.Add(new[] { "Manufacturer:", ContractorEn() });
+            p1.Info.Add(new[] { "Exam Date/Time:", P("StartDate") });
+            p1.Info.Add(new[] { "Item Name:", ItemList(rows) });
+            p1.Info.Add(new[] { "Material:", P("Material") });
+            p1.Info.Add(new[] { "Production Process:", "Welding" });
+            p1.Info.Add(new[] { "Surface Condition:", "As Welded" });
+            p1.Info.Add(new[] { "Testing Subject:", "Weld Metal" });
+            p1.Info.Add(new[] { "Inspection Method:", "Contact / Pulse Echo" });
+            p1.Info.Add(new[] { "Groove Type:", P("Groove") });
+            p1.Info.Add(new[] { "Welding Process:", P("WeldProc") });
+            p1.Info.Add(new[] { "Code/Standard:", P("Standard") });
+            p1.Info.Add(new[] { "Edition:", P("Edition") });
+            p1.Info.Add(new[] { "Reference dB:", P("RefDb") });
+            p1.Info.Add(new[] { "Scanning dB:", P("ScanDb") });
+            p1.Info.Add(new[] { "Couplant:", P("Couplant") });
+            p1.Info.Add(new[] { "Sensitivity Calibration:", "SDH" });
+            p1.Info.Add(new[] { "Examination Model:", P("Model") });
+            p1.Info.Add(new[] { "Type/Ser. No.:", P("TypeSer") });
+            p1.Info.Add(new[] { "Probe No.:", P("Probe") });
+            p1.Info.Add(new[] { "Freq. (Mhz):", P("Freq") });
+            p1.Info.Add(new[] { "Size (mm):", P("Size") });
+            p1.Info.Add(new[] { "Angle (°):", P("Angle") });
+            p1.Info.Add(new[] { "Index (mm):", P("IndexMm") });
+            p1.Info.Add(new[] { "", "" });
+            docs.Add(p1);
 
-                var p1 = new ReportDoc
-                {
-                    Title = "ULTRASONIC INSPECTION REPORT",
-                    Code = "Process ID: QC   FR   No: 6   Rev.: 2",
-                    Revision = "PAGE : 1 OF 2",
-                    InfoColumns = 2,
-                    Sketch = SketchImage(Sketch),
-                    SketchCaption = "Sketch:"
-                };
-                p1.Info.Add(new[] { "Project:", ProjectEn() });
-                p1.Info.Add(new[] { "Request No:", "" });
-                p1.Info.Add(new[] { "Client:", ClientEn() });
-                p1.Info.Add(new[] { "Faze:", PhaseText() });
-                p1.Info.Add(new[] { "Manufacturer:", ContractorEn() });
-                p1.Info.Add(new[] { "Exam Date/Time:", P("StartDate") });
-                p1.Info.Add(new[] { "Item Name:", first.PartLabel });
-                p1.Info.Add(new[] { "Material:", P("Material") });
-                p1.Info.Add(new[] { "Production Process:", "Welding" });
-                p1.Info.Add(new[] { "Surface Condition:", "As Welded" });
-                p1.Info.Add(new[] { "Testing Subject:", "Weld Metal" });
-                p1.Info.Add(new[] { "Inspection Method:", "Contact / Pulse Echo" });
-                p1.Info.Add(new[] { "Groove Type:", P("Groove") });
-                p1.Info.Add(new[] { "Welding Process:", P("WeldProc") });
-                p1.Info.Add(new[] { "Code/Standard:", P("Standard") });
-                p1.Info.Add(new[] { "Edition:", P("Edition") });
-                p1.Info.Add(new[] { "Reference dB:", P("RefDb") });
-                p1.Info.Add(new[] { "Scanning dB:", P("ScanDb") });
-                p1.Info.Add(new[] { "Couplant:", P("Couplant") });
-                p1.Info.Add(new[] { "Sensitivity Calibration:", "SDH" });
-                p1.Info.Add(new[] { "Examination Model:", P("Model") });
-                p1.Info.Add(new[] { "Type/Ser. No.:", P("TypeSer") });
-                p1.Info.Add(new[] { "Probe No.:", P("Probe") });
-                p1.Info.Add(new[] { "Freq. (Mhz):", P("Freq") });
-                p1.Info.Add(new[] { "Size (mm):", P("Size") });
-                p1.Info.Add(new[] { "Angle (°):", P("Angle") });
-                p1.Info.Add(new[] { "Index (mm):", P("IndexMm") });
-                p1.Info.Add(new[] { "", "" });
-                docs.Add(p1);
+            for (int page = 0; page < tablePages; page++)
+            {
+                // with more than one item an "Item" column says which part each weld belongs to
+                var headers = new List<string> { "Identification" };
+                var widths = new List<float> { 5 };
+                if (manyItems) { headers.Add("Item"); widths.Add(7); }
+                headers.AddRange(new[] { "Weld", "Welder No.", "Scanning Surface / Dir.", "Thk. (mm)",
+                                         "Tested Length (mm)", "Probe No.", "X", "Y", "D", "L", "Interpretation",
+                                         "Acc. Yes", "Acc. No", "Remarks" });
+                widths.AddRange(new float[] { 4, 6, 8, 5, 7, 5, 4, 4, 4, 4, 8, 4, 4, 10 });
 
                 var p2 = new ReportDoc
                 {
                     Title = "ULTRASONIC INSPECTION REPORT",
                     Code = "Process ID: QC   FR   No: 6   Rev.: 2",
-                    Revision = "PAGE : 2 OF 2",
+                    Revision = "PAGE : " + (page + 2) + " OF " + total,
                     InfoColumns = 2,
                     Landscape = true,
-                    MinRows = 20,
-                    Headers = new[] { "Identification", "Weld", "Welder No.", "Scanning Surface / Dir.", "Thk. (mm)",
-                                      "Tested Length (mm)", "Probe No.", "X", "Y", "D", "L", "Interpretation",
-                                      "Acc. Yes", "Acc. No", "Remarks" },
-                    Widths = new float[] { 5, 4, 6, 8, 5, 7, 5, 4, 4, 4, 4, 8, 4, 4, 10 },
+                    MinRows = RowsPerPage,
+                    Headers = headers.ToArray(),
+                    Widths = widths.ToArray(),
                     Signers = new[]
                     {
                         "Inspector: " + P("Inspector") + "\nReport Date: " + P("StartDate"),
@@ -158,16 +184,19 @@ namespace WindowsFormsApp1.Forms
                 p2.Info.Add(new[] { "Manufacturer:", ContractorEn() });
                 p2.Info.Add(new[] { "Exam Date/Time:", P("StartDate") });
 
-                int n = 1;
-                foreach (var r in gr)
+                int n = page * RowsPerPage;
+                foreach (var r in rows.Skip(page * RowsPerPage).Take(RowsPerPage))
                 {
-                    p2.Rows.Add(new[]
+                    n++;
+                    var cells = new List<string> { n.ToString() };
+                    if (manyItems) cells.Add(r.PartLabel);
+                    cells.AddRange(new[]
                     {
-                        n.ToString(), r.WeldId, r.WelderNo ?? "", r.ScanSurface ?? "", Num(r.ThicknessMm),
+                        r.WeldId, r.WelderNo ?? "", r.ScanSurface ?? "", Num(r.ThicknessMm),
                         Num(r.TestedLengthMm), r.ProbeAngle ?? "", Num(r.IndX), Num(r.IndY), Num(r.IndD), Num(r.IndL),
                         r.Interpretation ?? "", Mark(r.Accepted), Mark(!r.Accepted), r.Remarks ?? ""
                     });
-                    n++;
+                    p2.Rows.Add(cells.ToArray());
                 }
                 docs.Add(p2);
             }

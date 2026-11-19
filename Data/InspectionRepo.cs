@@ -124,18 +124,18 @@ namespace Data
             {
                 n.Id = c.ExecuteScalar<int>(@"
                     INSERT INTO Ncr (ProjectId,PartId,InstanceNo,NcrDate,ProductType,Stage,HallSupervisor,Inspector,
-                        Preparer,Description,Severity,TaskDescription,SessionDuration,Deadline,ExecResult,InspResult,
+                        Preparer,FollowUpBy,Description,Severity,TaskDescription,SessionDuration,Deadline,ExecResult,InspResult,
                         QtyAccepted,QtyRework,QtyReturned,QtyOtherUse,QtyScrap,ReviewDuration,FinalTask)
                     OUTPUT INSERTED.Id
                     VALUES (@ProjectId,@PartId,@InstanceNo,@NcrDate,@ProductType,@Stage,@HallSupervisor,@Inspector,
-                        @Preparer,@Description,@Severity,@TaskDescription,@SessionDuration,@Deadline,@ExecResult,@InspResult,
+                        @Preparer,@FollowUpBy,@Description,@Severity,@TaskDescription,@SessionDuration,@Deadline,@ExecResult,@InspResult,
                         @QtyAccepted,@QtyRework,@QtyReturned,@QtyOtherUse,@QtyScrap,@ReviewDuration,@FinalTask)", n, tx);
             }
             else
             {
                 c.Execute(@"
                     UPDATE Ncr SET PartId=@PartId,InstanceNo=@InstanceNo,NcrDate=@NcrDate,ProductType=@ProductType,
-                        Stage=@Stage,HallSupervisor=@HallSupervisor,Inspector=@Inspector,Preparer=@Preparer,
+                        Stage=@Stage,HallSupervisor=@HallSupervisor,Inspector=@Inspector,Preparer=@Preparer,FollowUpBy=@FollowUpBy,
                         Description=@Description,Severity=@Severity,TaskDescription=@TaskDescription,
                         SessionDuration=@SessionDuration,Deadline=@Deadline,ExecResult=@ExecResult,
                         InspResult=@InspResult,QtyAccepted=@QtyAccepted,QtyRework=@QtyRework,QtyReturned=@QtyReturned,

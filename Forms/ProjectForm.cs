@@ -29,6 +29,12 @@ namespace WindowsFormsApp1.Forms
 
         void btnSave_Click(object sender, EventArgs e)
         {
+            if (string.IsNullOrWhiteSpace(bbName.Fa))
+            {
+                Msg.Show("نام پروژه را وارد کنید.");
+                return;
+            }
+
             DateTime contractDate;
             if (!Calendar.TryParse(mtbContractDate.Text, out contractDate))
             {

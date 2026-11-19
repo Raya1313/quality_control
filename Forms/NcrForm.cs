@@ -11,6 +11,7 @@ using System.Windows.Forms;
 namespace WindowsFormsApp1.Forms
 {
     // Section 7: nonconformance form (one record per defective part instance)
+    [System.ComponentModel.DesignerCategory("Code")]   // built in code: open it with View Code, not the designer
     public class NcrForm : Form
     {
         static readonly System.Globalization.CultureInfo Inv = System.Globalization.CultureInfo.InvariantCulture;
@@ -34,6 +35,7 @@ namespace WindowsFormsApp1.Forms
         readonly TextBox _supervisor = new TextBox();
         readonly TextBox _inspector = new TextBox();
         readonly TextBox _preparer = new TextBox();
+        readonly TextBox _followUp = new TextBox();
         readonly ComboBox _severity = new ComboBox { DropDownStyle = ComboBoxStyle.DropDown };
         readonly TextBox _desc = Multi(60);
         readonly TextBox _task = Multi(60);
@@ -165,6 +167,7 @@ namespace WindowsFormsApp1.Forms
             f.Controls.Add(Ui.Field("مدت جلسه تعیین تکلیف", _session, 140));
             f.Controls.Add(Ui.Field("مهلت تکمیل تا مورخ", _deadline, 110));
             f.Controls.Add(Ui.Field("نتایج اجرا (اصلاح)", _execResult, 900));
+            f.Controls.Add(Ui.Field("مسئول پیگیری", _followUp, 140));
             f.Controls.Add(Ui.Field("نتیجه بازرسی", _inspResult, 900));
 
             f.Controls.Add(Ui.Field("مقدار پذیرفته شده", _qAccepted, 110));
@@ -225,6 +228,7 @@ namespace WindowsFormsApp1.Forms
             _supervisor.Text = n.HallSupervisor;
             _inspector.Text = n.Inspector;
             _preparer.Text = n.Preparer;
+            _followUp.Text = n.FollowUpBy;
             _severity.Text = n.Severity;
             _desc.Text = n.Description;
             _task.Text = n.TaskDescription;
@@ -255,17 +259,27 @@ namespace WindowsFormsApp1.Forms
             if (_gridChecks != null) _gridChecks.EndEdit();
             DateTime d;
             if (!Calendar.TryParse(_date.Text, out d)) { Msg.Show("تاریخ نامعتبر است."); return false; }
-            if (d.Date < Session.Project.ContractDate.Date)
+            if (QcRules.IsBeforeContract(d, Session.Project.ContractDate))
             {
                 Msg.Show("تاریخ نمی‌تواند قبل از تاریخ عقد قرارداد (" + Calendar.ToText(Session.Project.ContractDate) + ") باشد.");
                 return false;
             }
 
             DateTime? deadline = null;
-            if (_deadline.Text.Replace("/", "").Trim().Length > 0)
+            if (!QcRules.IsBlankDateText(_deadline.Text))
             {
                 DateTime dl;
                 if (!Calendar.TryParse(_deadline.Text, out dl)) { Msg.Show("مهلت تکمیل نامعتبر است."); return false; }
+                if (QcRules.IsBeforeContract(dl, Session.Project.ContractDate))
+                {
+                    Msg.Show("مهلت تکمیل نمی‌تواند قبل از تاریخ عقد قرارداد (" + Calendar.ToText(Session.Project.ContractDate) + ") باشد.");
+                    return false;
+                }
+                if (QcRules.EndBeforeStart(d, dl))
+                {
+                    Msg.Show("مهلت تکمیل نمی‌تواند قبل از تاریخ عدم انطباق باشد.");
+                    return false;
+                }
                 deadline = dl;
             }
 
@@ -283,6 +297,7 @@ namespace WindowsFormsApp1.Forms
             _current.HallSupervisor = _supervisor.Text.Trim();
             _current.Inspector = _inspector.Text.Trim();
             _current.Preparer = _preparer.Text.Trim();
+            _current.FollowUpBy = _followUp.Text.Trim();
             _current.Severity = _severity.Text.Trim();
             _current.Description = _desc.Text.Trim();
             _current.TaskDescription = _task.Text.Trim();
@@ -394,6 +409,7 @@ namespace WindowsFormsApp1.Forms
                 Widths = new float[] { 3, 3, 3, 3, 3 },
                 Signers = new[]
                 {
+                    "تایید (امضاء) مسئول پیگیری:\n" + n.FollowUpBy,
                     "تایید (امضاء) مسئول کنترل کیفیت:\n" + proj.QcManagerFa,
                     "امضاء بازرس:\n" + n.Inspector
                 }

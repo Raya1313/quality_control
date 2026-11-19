@@ -1,4 +1,5 @@
-﻿using System;
+﻿#nullable enable
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
@@ -20,6 +21,7 @@ public class ReportDoc
     public string[] Headers = new string[0];
     public float[] Widths = new float[0];                  // relative widths, one per header
     public List<string[]> Rows = new List<string[]>();
+    public bool NumberBlankRows = false;                   // blank padding rows also show their row number
     public int MinRows = 15;                               // blank rows added up to this count
     public string[] Signers = new string[0];               // "Label\nName: ..."
     public bool Landscape;
@@ -221,15 +223,30 @@ public class ReportPrinter
         if (_ri < d.Rows.Count) return false;
 
         int blanks = Math.Max(0, d.MinRows - d.Rows.Count);
-        var empty = new string[d.Headers.Length];
-        for (int i = 0; i < d.Headers.Length; i++) empty[i] = "";
+        int numCol = NumberColumn(d);
+        int next = d.Rows.Count + 1;
         while (blanks > 0 && y + rh <= limit)
         {
+            var empty = new string[d.Headers.Length];
+            for (int i = 0; i < empty.Length; i++) empty[i] = "";
+            if (d.NumberBlankRows && numCol >= 0) empty[numCol] = next.ToString();   // blank rows keep their row number
             DrawRow(g, d, widths, b, y, rh, empty, false);
             y += rh;
             blanks--;
+            next++;
         }
         return true;
+    }
+
+    // index of the row-number column ("NO", "NO.", "ردیف", ...) or -1
+    static int NumberColumn(ReportDoc d)
+    {
+        for (int i = 0; i < d.Headers.Length; i++)
+        {
+            var h = (d.Headers[i] ?? "").Trim().TrimEnd('.').ToUpperInvariant();
+            if (h == "NO" || h == "ROW" || h == "IDENTIFICATION" || h == "ردیف") return i;
+        }
+        return -1;
     }
 
     void DrawRow(Graphics g, ReportDoc d, float[] widths, Rectangle b, float y, float h, string[] cells, bool header)

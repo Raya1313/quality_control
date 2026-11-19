@@ -11,6 +11,7 @@ using System.Windows.Forms;
 namespace WindowsFormsApp1.Forms
 {
     // Section 2: pre/during welding inspection checklist
+    [System.ComponentModel.DesignerCategory("Code")]   // built in code: open it with View Code, not the designer
     public class WeldChecklistForm : Form
     {
         public class Link
@@ -171,7 +172,7 @@ namespace WindowsFormsApp1.Forms
                 return false;
             }
             var contract = Session.Project.ContractDate.Date;
-            if (start.Date < contract)
+            if (QcRules.IsBeforeContract(start, contract))
             {
                 Msg.Show("تاریخ شروع بازرسی نمی‌تواند قبل از تاریخ عقد قرارداد (" +
                          Calendar.ToText(contract) + ") باشد.");
@@ -213,7 +214,6 @@ namespace WindowsFormsApp1.Forms
             int cap = (int)_capacity.Value;
             int gapB = (int)_gapBefore.Value;
             int gapD = (int)_gapDuring.Value;
-            int perReport = cap * gapB;            // parts produced between two report dates
             decimal pct = _percent.Value;
             var rnd = new Random();
 
@@ -226,11 +226,11 @@ namespace WindowsFormsApp1.Forms
                 var own = links.Where(x => x.PartId == p.Id).ToList();
                 if (own.Count == 0) { unlinked.Add(p.PartName); continue; }
 
-                int take = Math.Max(1, (int)Math.Ceiling(own.Count * pct / 100m));
+                int take = QcRules.ConnectionsToInspect(own.Count, pct);
 
                 for (int k = 1; k <= p.Qty; k++, index++)
                 {
-                    var date = start.AddDays((index / perReport) * gapB);
+                    var date = QcRules.WeldReportDate(start, index, cap, gapB);
 
                     var picked = own.OrderBy(x => rnd.Next()).Take(take).OrderBy(x => x.ConnectionCode);
                     foreach (var link in picked)
@@ -279,6 +279,27 @@ namespace WindowsFormsApp1.Forms
             _rows.Remove(x);
         }
 
+        // the dates already in the list (they may come from an older save or an older contract date)
+        bool RowDatesOk()
+        {
+            var contract = Session.Project.ContractDate.Date;
+            foreach (var r in _rows)
+            {
+                if (QcRules.IsBeforeContract(r.ReportDate, contract) || QcRules.IsBeforeContract(r.DuringDate, contract))
+                {
+                    Msg.Show("تاریخ قطعه " + r.PartLabel + " قبل از تاریخ عقد قرارداد (" +
+                             Calendar.ToText(contract) + ") است. لیست را دوباره ایجاد کنید.");
+                    return false;
+                }
+                if (QcRules.EndBeforeStart(r.ReportDate, r.DuringDate))
+                {
+                    Msg.Show("تاریخ «حین جوشکاری» قطعه " + r.PartLabel + " قبل از تاریخ «قبل از جوشکاری» است.");
+                    return false;
+                }
+            }
+            return true;
+        }
+
         void Save()
         {
             _grid.EndEdit();
@@ -286,6 +307,7 @@ namespace WindowsFormsApp1.Forms
 
             DateTime start;
             if (!TryReadStart(out start)) return;
+            if (!RowDatesOk()) return;
 
             var r = new WeldReport
             {
@@ -344,6 +366,9 @@ namespace WindowsFormsApp1.Forms
         {
             _grid.EndEdit();
             if (_rows.Count == 0) { Msg.Show("لیست خالی است."); return; }
+
+            DateTime printStart;
+            if (!TryReadStart(out printStart) || !RowDatesOk()) return;
 
             var d = new ReportDoc
             {
