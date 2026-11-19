@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 
 // The rules of the requirements PDF, kept free of forms and the database so they can be tested on their own.
-// The forms call these; Tests\QC1.Tests checks them.
+
 public static class QcRules
 {
     // p.3-4: an inspection date may not be before the contract date (the same day is fine)
