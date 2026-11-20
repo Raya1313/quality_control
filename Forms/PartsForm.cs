@@ -14,7 +14,7 @@ namespace WindowsFormsApp1.Forms
 {
     // Parts (Assembly List): add one by one or from Excel, delete, then confirm with the green button.
     // The list is only written to the database when the green button is pressed.
-    // Built the same way as ConnectionsForm: everything comes from the shared Ui helpers.
+
     public partial class PartsForm : Form
     {
         readonly BindingList<Part> _parts = new BindingList<Part>();
