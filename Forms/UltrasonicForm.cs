@@ -101,7 +101,7 @@ namespace WindowsFormsApp1.Forms
         }
 
         // One specification page (the sketch and test data are the same for every item), then the weld table
-        // with 20 rows to a page. The page count follows the number of rows, not 2 pages for every part.
+        // with 20 rows to a page. The page count follows the number of rows
         protected override List<ReportDoc> BuildDocs()
         {
             var docs = new List<ReportDoc>();
